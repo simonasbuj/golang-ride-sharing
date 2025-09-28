@@ -18,14 +18,14 @@ func main() {
 	inmemoryRepo := repository.NewInmemoryRepository()
 	tripService := service.NewTripService(inmemoryRepo)
 	
+	httpHandler := http_handlers.NewHttpHandler(tripService)
+
 	// start http server
 	log.Printf("starting HTTP server on port %s", httpAddr)
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /preview", func(w http.ResponseWriter, r *http.Request) {
-		http_handlers.HandleTripPreview(w, r, tripService)
-	})
+	mux.HandleFunc("POST /preview", httpHandler.HandleTripPreview)
 
 	server := &http.Server{
 		Addr: 		httpAddr,
