@@ -5,8 +5,7 @@ Please ignore "web"
 
 # tech used in this project
 - kubernetes with minikube
-- tilt local Kubernetes development tool
+- tilt local kubernetes development tool
 - rabbitmq
 - websockets
 
-# 

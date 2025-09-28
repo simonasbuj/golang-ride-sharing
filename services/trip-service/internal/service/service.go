@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"golang-ride-sharing/services/trip-service/internal/domain"
 	"golang-ride-sharing/shared/types"
+	trip_types "golang-ride-sharing/services/trip-service/internal/types"
 	"io"
 	"net/http"
 
@@ -33,7 +34,7 @@ func (s *tripService) CreateTrip(ctx context.Context, fare *domain.RideFareModel
 	return s.repo.CreateTrip(ctx, trip)
 }
 
-func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*types.OsrmApiResponse, error) {
+func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.Coordinate) (*trip_types.OsrmApiResponse, error) {
 	url := fmt.Sprintf(
 		"http://router.project-osrm.org/route/v1/driving/%f,%f;%f,%f?overview=full&geometries=geojson",
 		pickup.Longitude, pickup.Latitude,
@@ -51,7 +52,7 @@ func (s *tripService) GetRoute(ctx context.Context, pickup, destination *types.C
 		return nil, fmt.Errorf("failed to read the response: %v", err)
 	}
 
-	var routeResp types.OsrmApiResponse
+	var routeResp trip_types.OsrmApiResponse
 	if err := json.Unmarshal(body, &routeResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal json response: %v", err)
 	}
