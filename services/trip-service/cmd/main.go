@@ -1,31 +1,40 @@
 package main
 
 import (
-	"context"
-	"golang-ride-sharing/services/trip-service/internal/domain"
+	http_handlers "golang-ride-sharing/services/trip-service/internal/infrastructure/http"
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"golang-ride-sharing/services/trip-service/internal/service"
+	"golang-ride-sharing/shared/env"
 	"log"
-	"time"
+	"net/http"
+)
+
+var (
+	httpAddr = env.GetString("HTTP_ADDR", ":8083")
 )
 
 func main() {
+	// dependency injections
 	inmemoryRepo := repository.NewInmemoryRepository()
 	tripService := service.NewTripService(inmemoryRepo)
+	
+	httpHandler := http_handlers.NewHttpHandler(tripService)
 
-	fare := &domain.RideFareModel{
-		UserID: "42069",
-	}
-	trip, err := tripService.CreateTrip(context.Background(), fare)
-	if err != nil {
-		log.Println(err)
+	// start http server
+	log.Printf("starting HTTP server on port %s", httpAddr)
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /preview", httpHandler.HandleTripPreview)
+
+	server := &http.Server{
+		Addr: 		httpAddr,
+		Handler: 	mux,
 	}
 
-	log.Println(trip)
-
-	// TODO: delete this abomination
-	for {
-		time.Sleep(time.Second * 5)
-		log.Println(time.Now())
+	if err := server.ListenAndServe(); err != nil {
+		log.Printf("HTTP server error: %v", err)
 	}
+
 }
+
