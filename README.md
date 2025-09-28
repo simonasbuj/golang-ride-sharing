@@ -7,7 +7,6 @@ Please ignore "web"
 - kubernetes with minikube
 - tilt local Kubernetes development tool
 - rabbitmq
-
+- websockets
 
 # 
-
