@@ -25,12 +25,7 @@ func (h *httpHandler) HandleTripPreview(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-
-	fare := &domain.RideFareModel{
-		UserID: "42069",
-	}
-
-	trip, err := h.svc.CreateTrip(r.Context(), fare)
+	trip, err := h.svc.GetRoute(r.Context(), &reqBody.Pickup, &reqBody.Destination)
 	if err != nil {
 		log.Println(err)
 	}
