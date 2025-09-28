@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
-	"log"
 	"encoding/json"
 	"golang-ride-sharing/shared/contracts"
+	"log"
 	"net/http"
 )
 
