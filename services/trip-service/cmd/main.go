@@ -22,7 +22,7 @@ func main() {
 	// dependency injections
 	inmemoryRepo := repository.NewInmemoryRepository()
 	tripService := service.NewTripService(inmemoryRepo)
-	
+
 	httpHandler := http_handlers.NewHttpHandler(tripService)
 
 	// start http server
@@ -33,8 +33,8 @@ func main() {
 	mux.HandleFunc("POST /preview", httpHandler.HandleTripPreview)
 
 	server := &http.Server{
-		Addr: 		httpAddr,
-		Handler: 	mux,
+		Addr:    httpAddr,
+		Handler: mux,
 	}
 
 	serverErrors := make(chan error, 1)
@@ -48,7 +48,7 @@ func main() {
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	select {
-	case err:= <-serverErrors:
+	case err := <-serverErrors:
 		log.Printf("error starting the server: %v", err)
 
 	case sig := <-shutdown:
@@ -64,4 +64,3 @@ func main() {
 	}
 
 }
-
