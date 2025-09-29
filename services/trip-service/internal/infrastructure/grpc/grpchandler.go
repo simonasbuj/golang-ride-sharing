@@ -49,6 +49,7 @@ func (h *grpcHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	response := &pb.PreviewTripResponse{
 		TripID: "fake-id-hardcoded",
 		Route: trip.ToProto(),
+		RideFares: []*pb.RideFare{},
 	}
 	return response, nil
 
