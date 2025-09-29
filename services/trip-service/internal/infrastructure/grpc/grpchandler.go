@@ -46,10 +46,16 @@ func (h *grpcHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)
 	}
 
+	estimatedFares := h.service.EstimatePackagesPriceWithRoute(ctx, trip)
+	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, req.GetUserID())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to generate the rida fares: %v", err)
+	}
+
 	response := &pb.PreviewTripResponse{
 		TripID: "fake-id-hardcoded",
 		Route: trip.ToProto(),
-		RideFares: []*pb.RideFare{},
+		RideFares: domain.ToRideFaresProto(fares),
 	}
 	return response, nil
 
