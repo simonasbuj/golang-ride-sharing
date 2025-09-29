@@ -3,10 +3,9 @@
 bolt/uber wannabe using golang and event driven architecture
 Please ignore "web" 
 
-# tech used in this project
+# tech and skills learned/improved in this project
 - kubernetes with minikube
-- tilt local Kubernetes development tool
+- tilt local kubernetes development tool
 - rabbitmq
 - websockets
-
-# 
+- refactoring

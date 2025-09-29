@@ -2,20 +2,22 @@ package main
 
 import (
 	"context"
-	http_handlers "golang-ride-sharing/services/trip-service/internal/infrastructure/http"
+	"golang-ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"golang-ride-sharing/services/trip-service/internal/service"
 	"golang-ride-sharing/shared/env"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	grpcserver "google.golang.org/grpc"
 )
 
 var (
 	httpAddr = env.GetString("HTTP_ADDR", ":8083")
+	grpcAddr = env.GetString("GRPC_ADDR", ":9093")
 )
 
 func main() {
@@ -23,44 +25,38 @@ func main() {
 	inmemoryRepo := repository.NewInmemoryRepository()
 	tripService := service.NewTripService(inmemoryRepo)
 
-	httpHandler := http_handlers.NewHttpHandler(tripService)
 
-	// start http server
-	log.Printf("starting HTTP server on port %s", httpAddr)
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("POST /preview", httpHandler.HandleTripPreview)
-
-	server := &http.Server{
-		Addr:    httpAddr,
-		Handler: mux,
-	}
-
-	serverErrors := make(chan error, 1)
+	// start grpc server with graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	go func() {
-		log.Printf("server listening on %s", httpAddr)
-		serverErrors <- server.ListenAndServe()
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
+		cancel()
 	}()
 
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case err := <-serverErrors:
-		log.Printf("error starting the server: %v", err)
-
-	case sig := <-shutdown:
-		log.Printf("server is shutting down due to %v signal", sig)
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("could not stop server gracefully: %v", err)
-			server.Close()
-		}
+	lis, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		log.Fatalf("failed to listen on port %s: %v", grpcAddr, err)
 	}
 
+	grpcServer := grpcserver.NewServer()
+	
+	grpc.NewGrpcHandler(grpcServer, tripService)
+
+	log.Printf("starting gRPC server Trip Service on port %s", lis.Addr().String())
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Printf("failed to serve: %v", err)
+			cancel()
+		}
+	}()
+
+	// wait for shutdown signal
+	<- ctx.Done()
+	log.Println("shutting down the server gracefully...")
+	grpcServer.GracefulStop()
 }

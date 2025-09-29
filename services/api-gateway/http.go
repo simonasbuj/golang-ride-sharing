@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
+	"golang-ride-sharing/services/api-gateway/grpc_clients"
 	"golang-ride-sharing/shared/contracts"
 	"log"
 	"net/http"
 )
+
 
 func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	var reqBody previewTripRequest
@@ -23,28 +24,19 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call TripService
-	jsonBody, _ := json.Marshal(reqBody)
-	reader := bytes.NewReader(jsonBody)
-
-	svcResponse, err := http.Post(
-		"http://trip-service:8083/preview",
-		"application/json",
-		reader,
-	)
+	tripServiceClient, err := grpc_clients.NewtripServiceClient()
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
+	}
+	defer tripServiceClient.Close()
+
+	previewTripResponse, err := tripServiceClient.Client.PreviewTrip(r.Context(), reqBody.toProto())
+	if err != nil {
+		log.Printf("failed to preview a trip: %v", err)
+		http.Error(w, "failed to parse JSON payload, userID is required", http.StatusInternalServerError)
 		return
 	}
 
-	defer svcResponse.Body.Close()
-
-	var svcResponseBody any
-	if err := json.NewDecoder(svcResponse.Body).Decode(&svcResponseBody); err != nil {
-		log.Println(err)
-		http.Error(w, "failed to parse JSON response from trip service", http.StatusInternalServerError)
-		return
-	}
-
-	response := contracts.APIResponse{Data: svcResponseBody}
+	response := contracts.APIResponse{Data: previewTripResponse}
 	writeJSON(w, http.StatusCreated, response)
 }
