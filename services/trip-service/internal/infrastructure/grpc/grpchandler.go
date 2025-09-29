@@ -54,3 +54,9 @@ func (h *grpcHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	return response, nil
 
 }
+
+func (h *grpcHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest) (*pb.CreateTripResponse, error) {
+	return &pb.CreateTripResponse{
+		TripID: "this-is-fake-hardcoded-trip-id",
+	}, nil
+}
