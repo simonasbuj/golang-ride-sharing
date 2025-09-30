@@ -7,6 +7,11 @@ load('ext://restart_process', 'docker_build_with_restart')
 # k8s_yaml('./infra/development/k8s/secrets.yaml')
 
 k8s_yaml('./infra/development/k8s/app-config.yaml')
+k8s_resource(
+  new_name='app-config',
+  objects=['app-config:ConfigMap:default'],
+  labels=['configs']
+)
 
 ### End of K8s Config ###
 ### API Gateway ###

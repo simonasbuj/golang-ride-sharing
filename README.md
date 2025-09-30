@@ -58,6 +58,11 @@ kubectl apply -f infra/production/k8s/api-gateway-deployment.yaml
 kubectl apply -f infra/production/k8s/trip-service-deployment.yaml
 ```
 
+Deploy all at once with:
+```
+kubectl apply -f infra/production/k8s/
+```
+
 ### Call api
 Get external-ip for `api-gateway` service by running `kubectl get services`.
 Then you can make calls to apie using that ip for example `35.241.210.52:8081/trip/preview`
