@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"golang-ride-sharing/services/api-gateway/grpc_clients"
 	"golang-ride-sharing/shared/contracts"
 	"log"
@@ -64,7 +65,7 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 	createTripResponse, err := tripServiceClient.Client.CreateTrip(r.Context(), reqBody.toProto())
 		if err != nil {
 		log.Printf("error in trip-service.CreateTrip: %v", err)
-		http.Error(w, "failed to create a trip", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to create a trip: %s", err), http.StatusInternalServerError)
 		return
 	}
 

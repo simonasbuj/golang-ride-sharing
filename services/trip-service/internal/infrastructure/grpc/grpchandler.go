@@ -41,22 +41,38 @@ func (h *grpcHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 		Longitude: endLocation.Longitude,
 	}
 
-	trip, err := h.service.GetRoute(ctx, pickup, destination)
+	route, err := h.service.GetRoute(ctx, pickup, destination)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get route: %v", err)
 	}
 
+	estimatedFares := h.service.EstimatePackagesPriceWithRoute(ctx, route)
+	fares, err := h.service.GenerateTripFares(ctx, estimatedFares, req.GetUserID(), route)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to generate the rida fares: %v", err)
+	}
+
 	response := &pb.PreviewTripResponse{
 		TripID: "fake-id-hardcoded",
-		Route: trip.ToProto(),
-		RideFares: []*pb.RideFare{},
+		Route: route.ToProto(),
+		RideFares: domain.ToRideFaresProto(fares),
 	}
 	return response, nil
 
 }
 
 func (h *grpcHandler) CreateTrip(ctx context.Context, req *pb.CreateTripRequest) (*pb.CreateTripResponse, error) {
+	rideFare, err := h.service.GetAndValidateRideFare(ctx, req.GetRideFareID(), req.GetUserID())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	trip, err := h.service.CreateTrip(ctx, rideFare)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	return &pb.CreateTripResponse{
-		TripID: "this-is-fake-hardcoded-trip-id",
+		TripID: trip.ID.Hex(),
 	}, nil
 }
