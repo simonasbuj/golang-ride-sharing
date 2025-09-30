@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang-ride-sharing/services/trip-service/internal/domain"
-	"golang-ride-sharing/shared/types"
 	trip_types "golang-ride-sharing/services/trip-service/internal/types"
+	"golang-ride-sharing/shared/proto/trip"
+	"golang-ride-sharing/shared/types"
 	"io"
 	"net/http"
 
@@ -30,6 +31,7 @@ func (s *tripService) CreateTrip(ctx context.Context, fare *domain.RideFareModel
 		UserID: fare.UserID,
 		Status: "pending",
 		RideFare: fare,
+		Driver: &trip.TripDriver{},
 	}
 	return s.repo.CreateTrip(ctx, trip)
 }
@@ -72,7 +74,7 @@ func (s *tripService) EstimatePackagesPriceWithRoute(ctx context.Context, route 
 	return estimatedFares
 }
 
-func (s *tripService) GenerateTripFares(ctx context.Context, rideFares []*domain.RideFareModel, userID string) ([]*domain.RideFareModel, error){
+func (s *tripService) GenerateTripFares(ctx context.Context, rideFares []*domain.RideFareModel, userID string, route *trip_types.OsrmApiResponse) ([]*domain.RideFareModel, error){
 	fares := make([]*domain.RideFareModel, len(rideFares))
 
 	for i, f := range rideFares {
@@ -83,6 +85,7 @@ func (s *tripService) GenerateTripFares(ctx context.Context, rideFares []*domain
 			UserID: userID,
 			TotalPriceInCents: f.TotalPriceInCents,
 			PackageSlug: f.PackageSlug,
+			Route: route,
 		}
 
 		if err := s.repo.SaveRideFare(ctx, fare); err != nil {
@@ -111,6 +114,19 @@ func (s *tripService) estimateFareRoute(f *domain.RideFareModel, route *trip_typ
 		TotalPriceInCents: totalPrice,
 		PackageSlug: f.PackageSlug,
 	}
+}
+
+func (s *tripService) GetAndValidateRideFare(ctx context.Context, rideFareID, userID string) (*domain.RideFareModel, error) {
+	rideFare, err := s.repo.GetRideFareByID(ctx, rideFareID)
+	if err != nil {
+		return nil, err
+	}
+
+	if rideFare.UserID != userID {
+		return nil, fmt.Errorf("fare with id %s doesn't belong to userID %s", rideFareID, userID)
+	}
+
+	return rideFare, nil
 }
 
 

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"golang-ride-sharing/services/trip-service/internal/domain"
 	"sync"
 )
@@ -36,4 +37,13 @@ func (r *inmemoryRepository) SaveRideFare(ctx context.Context, fare *domain.Ride
 
 	r.rideFares[fare.ID.Hex()] = fare
 	return nil
+}
+
+func (r *inmemoryRepository) GetRideFareByID(ctx context.Context, rideFareID string) (*domain.RideFareModel, error) {
+	rideFare, ok := r.rideFares[rideFareID]
+	if !ok {
+		return nil, fmt.Errorf("ride fare with ID %s not found", rideFareID)
+	}
+	
+	return rideFare, nil
 }
