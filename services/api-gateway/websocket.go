@@ -73,10 +73,15 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	registerDriverResponse, err := driverServiceClient.Client.RegisterDriver(r.Context(), registerDriverRequest)
 	if err != nil {
-		log.Printf("error in trip-service.PreviewTrip: %v", err)
-		http.Error(w, "failed to preview a trip", http.StatusInternalServerError)
+		log.Printf("error in dirver-service.RegisterDriver: %v", err)
+		http.Error(w, "failed to register driver", http.StatusInternalServerError)
 		return
 	}
+
+	defer func() {
+		driverServiceClient.Client.UnregisterDriver(r.Context(), registerDriverRequest)
+		log.Printf("driver unregistered: %s", registerDriverRequest.DriverID)
+	}()
 
 	msg := contracts.WSMessage{
 		Type: "driver.cmd.register",
@@ -91,7 +96,6 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("error reading message, likely client disconnected: %v", err)
-			driverServiceClient.Client.UnregisterDriver(r.Context(), registerDriverRequest)
 			break
 		}
 

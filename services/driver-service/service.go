@@ -36,10 +36,10 @@ func (s *DriverService) RegisterDriver(driverId string, packageSlug string) (*pb
 	geohash := geohash.Encode(randomRoute[0][0], randomRoute[0][1])
 
 	driver := &pb.Driver{
+		Id: driverId,
 		Geohash:  geohash,
 		Location: &pb.Location{Latitude: randomRoute[0][0], Longitude: randomRoute[0][1]},
-		Name:     "Lando Norris",
-		Id: driverId,
+		Name:     "Charles Leclerc",
 		PackageSlug:    packageSlug,
 		ProfilePicture: util.GetRandomAvatar(rand.Intn(9) + 1),
 		CarPlate:       GenerateRandomPlate(),
@@ -54,12 +54,9 @@ func (s *DriverService) UnregisterDriver(driverId string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	newDrivers := s.drivers[:0] 
-	
-    for _, d := range s.drivers {
+    for i, d := range s.drivers {
         if d.Driver.Id != driverId {
-            newDrivers = append(newDrivers, d)
+            s.drivers = append(s.drivers[:i], s.drivers[i+1:]...)
         }
     }
-    s.drivers = newDrivers
 }

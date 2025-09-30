@@ -26,10 +26,10 @@ func NewGrpcHandler(server *grpc.Server, service *DriverService) *grpcHandler {
 }
 
 func (h *grpcHandler) RegisterDriver(ctx context.Context, req *pb.RegisterDriverRequest) (*pb.RegisterDriverResponse, error) {
-	log.Printf("registering driver with id: %s, packageSlug: %s", req.DriverID, req.PackageSlug)
-	driver , err := h.service.RegisterDriver(req.DriverID, req.PackageSlug)
+	log.Printf("registering driver with id: %s, packageSlug: %s", req.GetDriverID(), req.GetPackageSlug())
+	driver , err := h.service.RegisterDriver(req.GetDriverID(), req.GetPackageSlug())
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "error in DriverService.RegisterDriver: %s", err)
+		return nil, status.Errorf(codes.Internal, "failed to register driver in DriverService.RegisterDriver: %s", err)
 	}
 
 	return &pb.RegisterDriverResponse{
@@ -38,8 +38,12 @@ func (h *grpcHandler) RegisterDriver(ctx context.Context, req *pb.RegisterDriver
 }
 
 func (h *grpcHandler) UnregisterDriver(ctx context.Context, req *pb.RegisterDriverRequest) (*pb.RegisterDriverResponse, error) {
-	log.Printf("unregistering driver with id: %s", req.DriverID)
-	h.service.UnregisterDriver(req.DriverID)
+	log.Printf("unregistering driver with id: %s", req.GetDriverID())
+	h.service.UnregisterDriver(req.GetDriverID())
 	
-	return &pb.RegisterDriverResponse{}, nil
+	return &pb.RegisterDriverResponse{
+		Driver: &pb.Driver{
+			Id: req.GetDriverID(),
+		},
+	}, nil
 }
