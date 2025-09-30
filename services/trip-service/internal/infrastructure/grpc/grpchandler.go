@@ -33,11 +33,11 @@ func (h *grpcHandler) PreviewTrip(ctx context.Context, req *pb.PreviewTripReques
 	endLocation := req.GetEndLocation()
 
 	pickup := &types.Coordinate{
-		Latitude: startLocation.Latitiude,
+		Latitude: startLocation.Latitude,
 		Longitude: startLocation.Longitude,
 	}
 	destination := &types.Coordinate{
-		Latitude: endLocation.Latitiude,
+		Latitude: endLocation.Latitude,
 		Longitude: endLocation.Longitude,
 	}
 

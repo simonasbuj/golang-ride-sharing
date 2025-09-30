@@ -34,8 +34,10 @@ func main() {
 		log.Fatalf("failed to listen on port %s: %v", grpcAddr, err)
 	}
 
+	service := NewDriverService()
+
 	grpcServer := grpcserver.NewServer()
-	
+	NewGrpcHandler(grpcServer, service)
 
 	log.Printf("starting gRPC server Driver Service on port %s", lis.Addr().String())
 

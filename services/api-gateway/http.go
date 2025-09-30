@@ -25,7 +25,7 @@ func handleTripPreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call TripService
-	tripServiceClient, err := grpc_clients.NewtripServiceClient()
+	tripServiceClient, err := grpc_clients.NewTripServiceClient()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tripServiceClient, err := grpc_clients.NewtripServiceClient()
+	tripServiceClient, err := grpc_clients.NewTripServiceClient()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -14,8 +14,8 @@ type previewTripRequest struct {
 func (p *previewTripRequest) toProto() *pb.PreviewTripRequest {
 	return &pb.PreviewTripRequest{
 		UserID: p.UserID,
-		StartLocation: &pb.Coordinate{Latitiude: p.Pickup.Latitude, Longitude: p.Pickup.Longitude},
-		EndLocation: &pb.Coordinate{Latitiude: p.Destination.Latitude, Longitude: p.Destination.Longitude},
+		StartLocation: &pb.Coordinate{Latitude: p.Pickup.Latitude, Longitude: p.Pickup.Longitude},
+		EndLocation: &pb.Coordinate{Latitude: p.Destination.Latitude, Longitude: p.Destination.Longitude},
 	}
 }
 
