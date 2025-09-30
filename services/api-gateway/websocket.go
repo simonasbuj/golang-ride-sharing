@@ -1,10 +1,12 @@
 package main
 
 import (
+	"golang-ride-sharing/services/api-gateway/grpc_clients"
 	"golang-ride-sharing/shared/contracts"
-	"golang-ride-sharing/shared/util"
 	"log"
 	"net/http"
+
+	pb "golang-ride-sharing/shared/proto/driver"
 
 	"github.com/gorilla/websocket"
 )
@@ -40,7 +42,7 @@ func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
-		conn ,err := upgrader.Upgrade(w, r, nil)
+	conn ,err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("Drivers WebSocket upgrade failed %v", err)
 	}
@@ -58,23 +60,32 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type Driver struct {
-		ID 				string 	`jsong:"id"`
-		Name 			string	`jsong:"name"`
-		ProfilePicture	string	`jsong:"profilePicture"`
-		CarPlate		string	`jsong:"carPlate"`
-		PackageSlug		string	`jsong:"packageSlug"`
+	driverServiceClient, err := grpc_clients.NewDriverServiceClient()
+	if err != nil {
+		log.Fatal(err)
 	}
+	defer driverServiceClient.Close()
+
+	registerDriverRequest := &pb.RegisterDriverRequest{
+		DriverID: userID,
+		PackageSlug: packageSlug,
+	}
+
+	registerDriverResponse, err := driverServiceClient.Client.RegisterDriver(r.Context(), registerDriverRequest)
+	if err != nil {
+		log.Printf("error in dirver-service.RegisterDriver: %v", err)
+		http.Error(w, "failed to register driver", http.StatusInternalServerError)
+		return
+	}
+
+	defer func() {
+		driverServiceClient.Client.UnregisterDriver(r.Context(), registerDriverRequest)
+		log.Printf("driver unregistered: %s", registerDriverRequest.DriverID)
+	}()
 
 	msg := contracts.WSMessage{
 		Type: "driver.cmd.register",
-		Data: Driver{
-			ID: userID,
-			Name: "sim sim",
-			ProfilePicture: util.GetRandomAvatar(3),
-			CarPlate: "LLP831",
-			PackageSlug: packageSlug,
-		},
+		Data: registerDriverResponse.Driver,
 	}
 
 	if err := conn.WriteJSON(msg); err != nil {
@@ -84,7 +95,7 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("error reading message: %v", err)
+			log.Printf("error reading message, likely client disconnected: %v", err)
 			break
 		}
 

@@ -143,7 +143,7 @@ func (x *PreviewTripResponse) GetRideFares() []*RideFare {
 
 type Coordinate struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Latitiude     float64                `protobuf:"fixed64,1,opt,name=latitiude,proto3" json:"latitiude,omitempty"`
+	Latitude      float64                `protobuf:"fixed64,1,opt,name=latitude,proto3" json:"latitude,omitempty"`
 	Longitude     float64                `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -179,9 +179,9 @@ func (*Coordinate) Descriptor() ([]byte, []int) {
 	return file_trip_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Coordinate) GetLatitiude() float64 {
+func (x *Coordinate) GetLatitude() float64 {
 	if x != nil {
-		return x.Latitiude
+		return x.Latitude
 	}
 	return 0
 }
@@ -634,10 +634,10 @@ const file_trip_proto_rawDesc = "" +
 	"\x13PreviewTripResponse\x12\x16\n" +
 	"\x06tripID\x18\x01 \x01(\tR\x06tripID\x12!\n" +
 	"\x05route\x18\x02 \x01(\v2\v.trip.RouteR\x05route\x12,\n" +
-	"\trideFares\x18\x03 \x03(\v2\x0e.trip.RideFareR\trideFares\"H\n" +
+	"\trideFares\x18\x03 \x03(\v2\x0e.trip.RideFareR\trideFares\"F\n" +
 	"\n" +
-	"Coordinate\x12\x1c\n" +
-	"\tlatitiude\x18\x01 \x01(\x01R\tlatitiude\x12\x1c\n" +
+	"Coordinate\x12\x1a\n" +
+	"\blatitude\x18\x01 \x01(\x01R\blatitude\x12\x1c\n" +
 	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\"k\n" +
 	"\x05Route\x12*\n" +
 	"\bgeometry\x18\x01 \x03(\v2\x0e.trip.GeometryR\bgeometry\x12\x1a\n" +

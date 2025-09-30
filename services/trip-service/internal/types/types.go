@@ -22,7 +22,7 @@ func (o *OsrmApiResponse) ToProto() *pb.Route {
 
 	for i, coord := range geometry {
 		coordinates[i] = &pb.Coordinate{
-			Latitiude: coord[0],
+			Latitude: coord[0],
 			Longitude: coord[1],
 		}
 	}

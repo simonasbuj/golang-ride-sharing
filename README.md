@@ -19,7 +19,12 @@ eval $(minikube docker-env)
 eval $(minikube docker-env --unset)
 ```
 
-### deploy to gcp
+### Add proto cli to terminal
+```
+export PATH="$PATH:$HOME/go/bin"
+```
+
+# deploy to gcp
 Get REGION and PROJECT_ID values from google cloud webpage.
 Mine for example was REGION=europe-west1, PROJECT_ID=sandbox-big-query-437119
 
@@ -56,6 +61,11 @@ kubectl apply -f infra/production/k8s/app-config.yaml
 
 kubectl apply -f infra/production/k8s/api-gateway-deployment.yaml
 kubectl apply -f infra/production/k8s/trip-service-deployment.yaml
+```
+
+Deploy all at once with:
+```
+kubectl apply -f infra/production/k8s/
 ```
 
 ### Call api

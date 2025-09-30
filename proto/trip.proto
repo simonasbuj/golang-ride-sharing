@@ -23,7 +23,7 @@ message PreviewTripResponse {
 }
 
 message Coordinate {
-    double latitiude = 1;
+    double latitude = 1;
     double longitude = 2;
 }
 
