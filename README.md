@@ -9,3 +9,12 @@ Please ignore "web"
 - rabbitmq
 - websockets
 - refactoring
+
+
+# cheat sheat
+
+Make terminal user docker from minikube:
+```
+eval $(minikube docker-env)
+eval $(minikube docker-env --unset)
+```
