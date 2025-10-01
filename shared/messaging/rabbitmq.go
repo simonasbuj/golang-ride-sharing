@@ -79,3 +79,33 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 
 	return err
 }
+
+type MessageHandler func(context.Context, amqp.Delivery) error
+
+func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) error {
+	msgs, err := r.Channel.Consume(
+		queueName,
+		"",			// consumer
+		true,		// auto-ack
+		false,		// exclusive
+		false,		// no-local
+		false,		// no-wait
+		nil,		// args
+
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+
+	go func() {
+		for msg := range msgs {
+			if err := handler(ctx, msg); err != nil {
+				log.Fatalf("failed to handle the message, message: %s, error: %v", msg.Body, err)
+			}
+		}
+	}()
+
+	return nil
+}
