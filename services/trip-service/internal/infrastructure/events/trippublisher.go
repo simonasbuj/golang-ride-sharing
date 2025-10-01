@@ -2,6 +2,8 @@ package events
 
 import (
 	"context"
+	"encoding/json"
+	"golang-ride-sharing/services/trip-service/internal/domain"
 	"golang-ride-sharing/shared/messaging"
 )
 
@@ -16,8 +18,14 @@ func NewTripEventPublisher (rabbitmq *messaging.RabbitMQ) *TripEventPublisher {
 	}
 }
 
-func (p *TripEventPublisher) PublishTripCreated(ctx context.Context) error {
-	err := p.rabbitmq.PublishMessage(ctx, "hello", "my hardcoded message boi")
+func (p *TripEventPublisher) PublishTripCreated(ctx context.Context, trip *domain.TripModel) error {
+	
+	body, err := json.Marshal(trip)
+	if err != nil {
+		return err
+	}
+
+	err = p.rabbitmq.PublishMessage(ctx, "hello", string(body))
 	
 	return err
 }
