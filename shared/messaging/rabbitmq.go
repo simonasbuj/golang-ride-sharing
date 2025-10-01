@@ -53,7 +53,7 @@ func (r *RabbitMQ) Close() {
 func (r *RabbitMQ) setupExchangesAndQueues() error {
 	_, err := r.Channel.QueueDeclare(
 		"hello", 	// name
-		false, 		// durable
+		true, 		// durable
 		false, 		// delete when used
 		false, 		// exclusive
 		false,		// no-wait
@@ -73,6 +73,7 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 		amqp.Publishing{
 			ContentType: "text/plain",
 			Body: []byte(message),
+			DeliveryMode: amqp.Persistent,
 		},
 	)
 
