@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"golang-ride-sharing/services/trip-service/internal/infrastructure/events"
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"golang-ride-sharing/services/trip-service/internal/service"
@@ -22,7 +23,7 @@ var (
 
 func main() {
 	// env vars
-	rabbitMqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
+	rabbitmqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
 	// dependency injections
 	inmemoryRepo := repository.NewInmemoryRepository()
@@ -46,16 +47,18 @@ func main() {
 	}
 
 	// RabbitMQ connection
-	rabbitMQ, err := messaging.NewRabbitMQ(rabbitMqUri)
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitmqUri)
 	if err != nil {
 		log.Fatalf("failed to connect to rabbitmq: %v", err)
 		return
 	}
-	defer rabbitMQ.Close()
+	defer rabbitmq.Close()
+
+	publisher := events.NewTripEventPublisher(rabbitmq)
 
 	// starting grpc server
 	grpcServer := grpcserver.NewServer()
-	grpc.NewGrpcHandler(grpcServer, tripService)
+	grpc.NewGrpcHandler(grpcServer, tripService, publisher)
 
 	log.Printf("starting gRPC server Trip Service on port %s", lis.Addr().String())
 
