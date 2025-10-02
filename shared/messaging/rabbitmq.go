@@ -3,10 +3,17 @@ package messaging
 import (
 	"context"
 	"fmt"
+	"golang-ride-sharing/shared/contracts"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+
+const (
+	TripExchange = "trip"
+)
+
 
 type RabbitMQ struct {
 	conn 	*amqp.Connection
@@ -41,6 +48,35 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 	return rmq, nil
 }
 
+func (r *RabbitMQ) declareAndBoundQueue(queueName string, messageTpes []string, exchangeName string) error {
+	q, err := r.Channel.QueueDeclare(
+		queueName, 	// queue name
+		true, 		// durable
+		false, 		// delete when used
+		false, 		// exclusive
+		false,		// no-wait
+		nil,		// arguments
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare queue %s", queueName)
+	}
+
+	for _, msg := range messageTpes {
+		err = r.Channel.QueueBind(
+			q.Name,				// queue name
+			msg, 				// routing key
+			exchangeName,		// exchange name
+			false,				// no-wait
+			nil,				// arguments
+		)
+		if err != nil {
+			return fmt.Errorf("failed to bind quueue %s: %v", queueName, err)
+		}
+	}
+
+	return  nil
+}
+
 func (r *RabbitMQ) Close() {
 	if r.conn != nil {
 		r.conn.Close()
@@ -52,23 +88,37 @@ func (r *RabbitMQ) Close() {
 }
 
 func (r *RabbitMQ) setupExchangesAndQueues() error {
-	_, err := r.Channel.QueueDeclare(
-		"hello", 	// name
-		true, 		// durable
-		false, 		// delete when used
-		false, 		// exclusive
-		false,		// no-wait
-		nil,		// arguments
+	err := r.Channel.ExchangeDeclare(
+		TripExchange, 	// exhcange name
+		"topic",		// routing type
+		true,			// durable
+		false,			// auto-deleted
+		false,			//internal
+		false,			// no-wait
+		nil,			// arguments
 	)
+	if err != nil {
+		return fmt.Errorf("failed to declare exchange %s: %v", TripExchange, err)
+	}
+
+	if err := r.declareAndBoundQueue(
+		"find_available_drivers",
+		[]string{
+			contracts.TripEventCreated,
+			contracts.TripEventDriverNotInterested,
+		},
+		TripExchange,
+	); err != nil { return err }
 
 	return err
 }
 
 func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message string) error {
+	log.Printf("publishing message with routingKey: %s", routingKey)
 	err := r.Channel.PublishWithContext(
 		ctx,
-		"",						// exchange
-		"hello",				// routing key aka queue name
+		TripExchange,			// exchange
+		routingKey,				// routing key aka queue name
 		false,					// mandatory
 		false,					// immediate
 		amqp.Publishing{
