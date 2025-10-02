@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"golang-ride-sharing/services/trip-service/internal/domain"
+	"golang-ride-sharing/shared/contracts"
 	"golang-ride-sharing/shared/messaging"
 )
 
@@ -25,7 +26,7 @@ func (p *TripEventPublisher) PublishTripCreated(ctx context.Context, trip *domai
 		return err
 	}
 
-	err = p.rabbitmq.PublishMessage(ctx, "hello", string(body))
+	err = p.rabbitmq.PublishMessage(ctx, contracts.TripEventCreated, string(body))
 	
 	return err
 }
