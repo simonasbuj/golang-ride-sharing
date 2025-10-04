@@ -3,22 +3,20 @@ package main
 import (
 	"golang-ride-sharing/services/api-gateway/grpc_clients"
 	"golang-ride-sharing/shared/contracts"
+	"golang-ride-sharing/shared/messaging"
 	"log"
 	"net/http"
 
 	pb "golang-ride-sharing/shared/proto/driver"
-
-	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
+
+var (
+	connManager = messaging.NewConnectionManager()
+)
 
 func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn ,err := upgrader.Upgrade(w, r, nil)
+	conn ,err := connManager.Upgrade(w, r)
 	if err != nil {
 		log.Printf("Riders WebSocket upgrade failed %v", err)
 	}
@@ -29,6 +27,9 @@ func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Println("no userID provided in request")
 		return
 	}
+
+	connManager.Add(userID, conn)
+	defer connManager.Remove(userID)
 
 	for {
 		_, message, err := conn.ReadMessage()
@@ -42,7 +43,7 @@ func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn ,err := upgrader.Upgrade(w, r, nil)
+	conn ,err := connManager.Upgrade(w, r)
 	if err != nil {
 		log.Printf("Drivers WebSocket upgrade failed %v", err)
 	}
@@ -59,6 +60,8 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Println("no packageSlug provided in request")
 		return
 	}
+
+	connManager.Add(userID, conn)
 
 	driverServiceClient, err := grpc_clients.NewDriverServiceClient()
 	if err != nil {
@@ -79,16 +82,19 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
+		connManager.Remove(userID)
 		driverServiceClient.Client.UnregisterDriver(r.Context(), registerDriverRequest)
+		driverServiceClient.Close()
+
 		log.Printf("driver unregistered: %s", registerDriverRequest.DriverID)
 	}()
 
 	msg := contracts.WSMessage{
-		Type: "driver.cmd.register",
+		Type: contracts.DriverCmdRegister, 
 		Data: registerDriverResponse.Driver,
 	}
 
-	if err := conn.WriteJSON(msg); err != nil {
+	if err := connManager.SendMessage(userID, msg); err != nil {
 		log.Printf("error while sending message: %v", err)
 	}
 
