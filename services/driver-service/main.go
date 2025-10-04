@@ -51,7 +51,7 @@ func main() {
 	NewGrpcHandler(grpcServer, service)
 
 
-	consumer := NewTripConsumer(rabbitmq)
+	consumer := NewTripConsumer(rabbitmq, service)
 	go func() {
 		if err := consumer.Listen(); err != nil {
 			log.Printf("failed to listen to the message: %v", err)
