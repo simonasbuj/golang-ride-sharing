@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"golang-ride-sharing/shared/contracts"
 	"log"
@@ -113,9 +114,15 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 	return err
 }
 
-func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message string) error {
+func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message contracts.AmqpMessage) error {
 	log.Printf("publishing message with routingKey: %s", routingKey)
-	err := r.Channel.PublishWithContext(
+
+	jsonMessage, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	err = r.Channel.PublishWithContext(
 		ctx,
 		TripExchange,			// exchange
 		routingKey,				// routing key aka queue name
@@ -123,7 +130,7 @@ func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, messag
 		false,					// immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body: []byte(message),
+			Body: jsonMessage,
 			DeliveryMode: amqp.Persistent,
 		},
 	)
