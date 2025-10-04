@@ -20,13 +20,21 @@ func NewTripEventPublisher (rabbitmq *messaging.RabbitMQ) *TripEventPublisher {
 }
 
 func (p *TripEventPublisher) PublishTripCreated(ctx context.Context, trip *domain.TripModel) error {
-	
-	body, err := json.Marshal(trip)
+	payload := messaging.TripEventData{
+		Trip: trip.ToProto(),
+	}
+
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	err = p.rabbitmq.PublishMessage(ctx, contracts.TripEventCreated, string(body))
+	message := contracts.AmqpMessage{
+		OwnerID: trip.UserID,
+		Data: body,
+	}
+
+	err = p.rabbitmq.PublishMessage(ctx, contracts.TripEventCreated, message)
 	
 	return err
 }
