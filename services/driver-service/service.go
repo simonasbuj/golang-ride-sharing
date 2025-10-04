@@ -55,8 +55,24 @@ func (s *DriverService) UnregisterDriver(driverId string) {
 	defer s.mu.Unlock()
 
     for i, d := range s.drivers {
-        if d.Driver.Id != driverId {
+        if d.Driver.Id == driverId {
             s.drivers = append(s.drivers[:i], s.drivers[i+1:]...)
         }
     }
+}
+
+func (s *DriverService) FindAvailableDrivers(packageSlug string) []string {
+	var matchingDrivers []string
+
+	for _, driver := range s.drivers {
+		if driver.Driver.PackageSlug == packageSlug {
+			matchingDrivers = append(matchingDrivers, driver.Driver.Id)
+		}
+	}
+
+	if len(matchingDrivers) == 0 {
+		return []string{}
+	}
+
+	return matchingDrivers
 }
