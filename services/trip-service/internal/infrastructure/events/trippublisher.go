@@ -30,7 +30,7 @@ func (p *TripEventPublisher) PublishTripCreated(ctx context.Context, trip *domai
 	}
 
 	message := contracts.AmqpMessage{
-		OwnerID: trip.UserID,
+		OwnerID: trip.UserID, 
 		Data: body,
 	}
 

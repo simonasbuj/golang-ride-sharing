@@ -49,7 +49,7 @@ func NewRabbitMQ(uri string) (*RabbitMQ, error) {
 	return rmq, nil
 }
 
-func (r *RabbitMQ) declareAndBoundQueue(queueName string, messageTpes []string, exchangeName string) error {
+func (r *RabbitMQ) declareAndBindQueue(queueName string, messageTpes []string, exchangeName string) error {
 	q, err := r.Channel.QueueDeclare(
 		queueName, 	// queue name
 		true, 		// durable
@@ -102,8 +102,8 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return fmt.Errorf("failed to declare exchange %s: %v", TripExchange, err)
 	}
 
-	if err := r.declareAndBoundQueue(
-		"find_available_drivers",
+	if err := r.declareAndBindQueue(
+		FindAvailableDriversQueue,
 		[]string{
 			contracts.TripEventCreated,
 			contracts.TripEventDriverNotInterested,
@@ -111,11 +111,35 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		TripExchange,
 	); err != nil { return err }
 
+	if err := r.declareAndBindQueue(
+		DriverCmdTripRequestQueue,
+		[]string{contracts.DriverCmdTripRequest},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
+		DriverTripResponseQueue,
+		[]string{contracts.DriverCmdTripAccept, contracts.DriverCmdTripDecline},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
+		NotifyRiderNoDriversFoundQueue,
+		[]string{contracts.TripEventNoDriversFound},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
 	return err
 }
 
 func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message contracts.AmqpMessage) error {
-	log.Printf("publishing message with routingKey: %s", routingKey)
+	log.Printf("publishing message with routingKey: %s, message: %+v", routingKey, message)
 
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
