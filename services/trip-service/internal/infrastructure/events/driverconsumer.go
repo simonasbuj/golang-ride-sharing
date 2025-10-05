@@ -85,6 +85,14 @@ func (c *driverResponseConsumer) handelTripDeclined(ctx context.Context, payload
 	}
 
 	marshalledTrip, err := json.Marshal(updatedTrip)
+	if err != nil {
+		return err
+	}
+
+	if err := c.rabbitmq.PublishMessage(ctx, contracts., contracts.AmqpMessage{
+		OwnerID: updatedTrip.UserID,
+		Data: marshalledTrip,
+	}
 
 	return nil
 }
