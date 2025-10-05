@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"golang-ride-sharing/shared/env"
+	"golang-ride-sharing/shared/messaging"
 )
 
 var (
@@ -19,12 +20,22 @@ var (
 func main() {
 	log.Println("Starting API Gateway v2")
 
+	// env vars
+	rabbitMqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
+
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqUri)
+	if err != nil {
+		log.Fatalf("failed to connect to rabbitmq: %v", err)
+		return
+	}
+	defer rabbitmq.Close()
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("POST /trip/preview",  enableCORS(handleTripPreview))
 	mux.HandleFunc("POST /trip/start",  enableCORS(handleTripStart))
-	mux.HandleFunc("/ws/drivers", handleDriversWebSocket)
-	mux.HandleFunc("/ws/riders", handleRidersWebSocket)
+	mux.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request){ handleDriversWebSocket(w, r, rabbitmq) })
+	mux.HandleFunc("/ws/riders", func(w http.ResponseWriter, r *http.Request){ handleRidersWebSocket(w, r, rabbitmq) } )
 
 	server := &http.Server{
 		Addr: httpAddr,

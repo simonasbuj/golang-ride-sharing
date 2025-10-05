@@ -38,7 +38,7 @@ func (qc *QueueConsumer) Start() error {
 		for msg := range msgs {
 			var msgBody contracts.AmqpMessage
 			if err := json.Unmarshal(msg.Body, &msgBody); err != nil {
-				log.Println("failed to unmarshal message: %+v, error: %v", msg.Body, err)
+				log.Printf("failed to unmarshal message: %+v, error: %v", msg.Body, err)
 				continue
 			}
 
@@ -47,7 +47,7 @@ func (qc *QueueConsumer) Start() error {
 			var payload any
 			if msgBody.Data != nil {
 				if err := json.Unmarshal(msgBody.Data, &payload); err != nil {
-					log.Println("failed to unmarshal payload: %+v, error: %v", msgBody.Data, err)
+					log.Printf("failed to unmarshal payload: %+v, error: %v", msgBody.Data, err)
 				}
 			}
 

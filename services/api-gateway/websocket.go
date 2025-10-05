@@ -15,7 +15,7 @@ var (
 	connManager = messaging.NewConnectionManager()
 )
 
-func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
+func handleRidersWebSocket(w http.ResponseWriter, r *http.Request, rabbitmq *messaging.RabbitMQ) {
 	conn ,err := connManager.Upgrade(w, r)
 	if err != nil {
 		log.Printf("Riders WebSocket upgrade failed %v", err)
@@ -42,7 +42,7 @@ func handleRidersWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
+func handleDriversWebSocket(w http.ResponseWriter, r *http.Request, rabbitmq *messaging.RabbitMQ) {
 	conn ,err := connManager.Upgrade(w, r)
 	if err != nil {
 		log.Printf("Drivers WebSocket upgrade failed %v", err)
@@ -96,6 +96,19 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	if err := connManager.SendMessage(userID, msg); err != nil {
 		log.Printf("error while sending message: %v", err)
+	}
+
+	// init queue consumer
+	queues := []string{
+		messaging.DriverCmdTripRequestQueue,
+	}
+
+	for _, q := range queues {
+		consumer := messaging.NewQueueConsumer(rabbitmq, connManager, q)
+
+		if err := consumer.Start(); err != nil {
+			log.Printf("failed to start consumer for queue: %s, error: %v", q, err)
+		}
 	}
 
 	for {
