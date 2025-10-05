@@ -2,6 +2,7 @@ package messaging
 
 import (
 	pb "golang-ride-sharing/shared/proto/trip"
+	pbd "golang-ride-sharing/shared/proto/driver"
 )
 
 const (
@@ -13,4 +14,10 @@ const (
 
 type TripEventData struct {
 	Trip *pb.Trip	`json:"trip"`
+}
+
+type DriverTripResponseData struct {
+	Driver 		*pbd.Driver	`json:"driver"`
+	TripID 		string		`json:"tripID"`
+	RiderID 	string		`json:"riderID"`
 }

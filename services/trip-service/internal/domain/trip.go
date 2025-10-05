@@ -6,6 +6,7 @@ import (
 	trip_types "golang-ride-sharing/services/trip-service/internal/types"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	pb "golang-ride-sharing/shared/proto/trip"
+	pbd "golang-ride-sharing/shared/proto/driver"
 )
 
 
@@ -41,4 +42,6 @@ type TripService interface {
 	EstimatePackagesPriceWithRoute(ctx context.Context, route *trip_types.OsrmApiResponse) []*RideFareModel
 	GenerateTripFares(ctx context.Context, fares []*RideFareModel, userID string, route *trip_types.OsrmApiResponse) ([]*RideFareModel, error)
 	GetAndValidateRideFare(ctx context.Context, rideFareID, userID string) (*RideFareModel, error)
+	GetTripByID(ctx context.Context, id string) (*TripModel, error)
+	UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) (*TripModel, error)
 }
