@@ -119,11 +119,27 @@ func (r *RabbitMQ) setupExchangesAndQueues() error {
 		return err
 	}
 
+	if err := r.declareAndBindQueue(
+		DriverTripResponseQueue,
+		[]string{contracts.DriverCmdTripAccept, contracts.DriverCmdTripDecline},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
+	if err := r.declareAndBindQueue(
+		NotifyRiderNoDriversFoundQueue,
+		[]string{contracts.TripEventNoDriversFound},
+		TripExchange,
+	); err != nil {
+		return err
+	}
+
 	return err
 }
 
 func (r *RabbitMQ) PublishMessage(ctx context.Context, routingKey string, message contracts.AmqpMessage) error {
-	log.Printf("publishing message with routingKey: %s", routingKey)
+	log.Printf("publishing message with routingKey: %s, message: %+v", routingKey, message)
 
 	jsonMessage, err := json.Marshal(message)
 	if err != nil {
