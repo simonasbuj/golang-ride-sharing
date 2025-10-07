@@ -7,14 +7,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ride-sharing/services/payment-service/pkg/types"
-	"ride-sharing/shared/env"
-	"ride-sharing/shared/messaging"
+	"golang-ride-sharing/services/payment-service/types"
+	"golang-ride-sharing/shared/env"
+	"golang-ride-sharing/shared/messaging"
 )
 
-var GrpcAddr = env.GetString("GRPC_ADDR", ":9004")
-
 func main() {
+	// GrpcAddr := env.GetString("GRPC_ADDR", ":9004")
 	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
 	// Setup graceful shutdown
