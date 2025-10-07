@@ -89,9 +89,12 @@ func (c *driverResponseConsumer) handelTripDeclined(ctx context.Context, payload
 		return err
 	}
 
-	if err := c.rabbitmq.PublishMessage(ctx, contracts., contracts.AmqpMessage{
+	// notify the rider that a driver has been assigned
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.TripEventDriverAssigned, contracts.AmqpMessage{
 		OwnerID: updatedTrip.UserID,
 		Data: marshalledTrip,
+	}); err != nil {
+		return err
 	}
 
 	return nil

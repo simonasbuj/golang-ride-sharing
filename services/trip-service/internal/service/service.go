@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	pbd "golang-ride-sharing/shared/proto/driver"
 )
 
 
@@ -127,6 +128,13 @@ func (s *tripService) GetAndValidateRideFare(ctx context.Context, rideFareID, us
 	}
 
 	return rideFare, nil
+}
+
+func (s *tripService) GetTripByID(ctx context.Context, id string) (*domain.TripModel, error) {
+	return s.repo.GetTripByID(ctx, id)
+}
+func (s *tripService) UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) (*domain.TripModel, error) {
+	return s.repo.UpdateTrip(ctx, tripID, status, driver)
 }
 
 
