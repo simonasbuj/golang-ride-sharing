@@ -2,27 +2,22 @@ package main
 
 import (
 	"context"
-	"golang-ride-sharing/shared/env"
-	"golang-ride-sharing/shared/messaging"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"golang-ride-sharing/services/payment-service/internal/infrastructure/grpc"
-	grpcserver "google.golang.org/grpc"
+	"ride-sharing/services/payment-service/pkg/types"
+	"ride-sharing/shared/env"
+	"ride-sharing/shared/messaging"
 )
 
-var (
-	grpcAddr = env.GetString("GRPC_ADDR", ":9094")
-)
+var GrpcAddr = env.GetString("GRPC_ADDR", ":9004")
 
 func main() {
-	// env vars
-	rabbitmqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
+	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
-	// start grpc server with graceful shutdown
+	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -33,34 +28,30 @@ func main() {
 		cancel()
 	}()
 
-	lis, err := net.Listen("tcp", grpcAddr)
-	if err != nil {
-		log.Fatalf("failed to listen on port %s: %v", grpcAddr, err)
+	appURL := env.GetString("APP_URL", "http://localhost:3000")
+
+	// Stripe config
+	stripeCfg := &types.PaymentConfig{
+		StripeSecretKey: env.GetString("STRIPE_SECRET_KEY", ""),
+		SuccessURL:      env.GetString("STRIPE_SUCCESS_URL", appURL+"?payment=success"),
+		CancelURL:       env.GetString("STRIPE_CANCEL_URL", appURL+"?payment=cancel"),
+	}
+
+	if stripeCfg.StripeSecretKey == "" {
+		log.Fatalf("STRIPE_SECRET_KEY is not set")
+		return
 	}
 
 	// RabbitMQ connection
-	rabbitmq, err := messaging.NewRabbitMQ(rabbitmqUri)
+	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
 	if err != nil {
-		log.Fatalf("failed to connect to rabbitmq: %v", err)
-		return
+		log.Fatal(err)
 	}
 	defer rabbitmq.Close()
 
-	// starting grpc server
-	grpcServer := grpcserver.NewServer()
-	grpc.NewGrpcHandler(grpcServer)
+	log.Println("Starting RabbitMQ connection")
 
-	log.Printf("starting gRPC server Payment Service on port %s", lis.Addr().String())
-
-	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
-			log.Printf("failed to serve: %v", err)
-			cancel()
-		}
-	}()
-
-	// wait for shutdown signal
-	<- ctx.Done()
-	log.Println("shutting down the server gracefully...")
-	grpcServer.GracefulStop()
+	// Wait for shutdown signal
+	<-ctx.Done()
+	log.Println("Shutting down payment service...")
 }
