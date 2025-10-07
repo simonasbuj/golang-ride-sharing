@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"golang-ride-sharing/services/trip-service/internal/domain"
 	"sync"
+
+	pb "golang-ride-sharing/shared/proto/trip"
+	pbd "golang-ride-sharing/shared/proto/driver"
 )
 
 
@@ -46,4 +49,36 @@ func (r *inmemoryRepository) GetRideFareByID(ctx context.Context, rideFareID str
 	}
 	
 	return rideFare, nil
+}
+
+func (r *inmemoryRepository) GetTripByID(ctx context.Context, id string) (*domain.TripModel, error) {
+	trip, ok := r.trips[id]
+	if !ok {
+		return nil, fmt.Errorf("trip with id %s not found")
+	}
+
+	return trip, nil
+}
+
+func (r *inmemoryRepository) UpdateTrip(ctx context.Context, tripID string, status string, driver *pbd.Driver) (*domain.TripModel, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	trip, err := r.GetTripByID(ctx, tripID)
+	if err != nil {
+		return nil, err
+	}
+	
+	trip.Status = status
+
+	if driver != nil {
+		trip.Driver = &pb.TripDriver{
+			Id: 			driver.Id,
+			Name:			driver.Name,
+			CarPlateNumber: driver.CarPlate,
+			ProfilePicture: driver.ProfilePicture,
+		}
+	}
+
+	return trip, nil
 }
