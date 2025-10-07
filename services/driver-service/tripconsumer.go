@@ -6,6 +6,7 @@ import (
 	"golang-ride-sharing/shared/contracts"
 	"golang-ride-sharing/shared/messaging"
 	"log"
+	"math/rand"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -66,8 +67,9 @@ func (c *tripConsumer) handleFindAndNotifyDrivers(ctx context.Context, payload m
 		}
 		return nil
 	}
-
-	suitableDriverID := suitableDriverIDs[0]
+	
+	randomIndex := rand.Intn(len(suitableDriverIDs))
+	suitableDriverID := suitableDriverIDs[randomIndex]
 
 	// notify the driver about potential trip
 	marshalledEvent, err := json.Marshal(payload)
