@@ -54,7 +54,7 @@ func (r *inmemoryRepository) GetRideFareByID(ctx context.Context, rideFareID str
 func (r *inmemoryRepository) GetTripByID(ctx context.Context, id string) (*domain.TripModel, error) {
 	trip, ok := r.trips[id]
 	if !ok {
-		return nil, fmt.Errorf("trip with id %s not found")
+		return nil, fmt.Errorf("trip with id %s not found", id)
 	}
 
 	return trip, nil
