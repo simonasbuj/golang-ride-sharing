@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"golang-ride-sharing/services/payment-service/internal/events"
 	"golang-ride-sharing/services/payment-service/internal/infrastructure/stripe"
 	"golang-ride-sharing/services/payment-service/internal/service"
 	"golang-ride-sharing/services/payment-service/types"
@@ -46,7 +47,8 @@ func main() {
 	paymentProcessor := stripe.NewStripeClient(stripeCfg)
 
 	svc := service.NewPaymentService(paymentProcessor)
-	log.Println(svc)
+	
+
 
 	// RabbitMQ connection
 	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
@@ -56,6 +58,10 @@ func main() {
 	defer rabbitmq.Close()
 
 	log.Println("Starting RabbitMQ connection")
+
+	// trip Consumer
+	tripConsumer := events.NewTripConsumer(rabbitmq, svc)
+	go tripConsumer.Listen()
 
 	// Wait for shutdown signal
 	<-ctx.Done()

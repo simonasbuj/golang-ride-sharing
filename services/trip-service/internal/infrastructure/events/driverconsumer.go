@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"golang-ride-sharing/services/trip-service/internal/domain"
@@ -65,7 +66,7 @@ func (c *driverResponseConsumer) Listen() error  {
 func (c *driverResponseConsumer) handelTripAccepted(ctx context.Context, payload messaging.DriverTripResponseData) error {
 	log.Printf("handling trip accepted event")
 
-	_, err := c.service.GetTripByID(ctx, payload.TripID)
+	trip, err := c.service.GetTripByID(ctx, payload.TripID)
 	if err != nil {
 		return err
 	}
@@ -86,6 +87,27 @@ func (c *driverResponseConsumer) handelTripAccepted(ctx context.Context, payload
 		OwnerID: updatedTrip.UserID,
 		Data: marshalledTrip,
 	}); err != nil {
+		return err
+	}
+
+	// notify payment service 
+	marshalledPayload, err := json.Marshal(messaging.PaymentTripResponseData{
+		TripID:   payload.TripID,
+		UserID:   trip.UserID,
+		DriverID: payload.Driver.Id,
+		Amount:   trip.RideFare.TotalPriceInCents,
+		Currency: "USD",
+	})
+	if err != nil {
+		return fmt.Errorf("failed to marshal payment trip response data: %w", err)
+	}
+
+	if err := c.rabbitmq.PublishMessage(ctx, contracts.PaymentCmdCreateSession,
+		contracts.AmqpMessage{
+			OwnerID: trip.UserID,
+			Data:    marshalledPayload,
+		},
+	); err != nil {
 		return err
 	}
 
