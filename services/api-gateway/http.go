@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"golang-ride-sharing/services/api-gateway/grpc_clients"
 	"golang-ride-sharing/shared/contracts"
+	"golang-ride-sharing/shared/env"
+	"golang-ride-sharing/shared/messaging"
+	"io"
 	"log"
 	"net/http"
+
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/webhook"
 )
 
 
@@ -71,4 +77,75 @@ func handleTripStart(w http.ResponseWriter, r *http.Request) {
 
 	response := contracts.APIResponse{Data: createTripResponse}
 	writeJSON(w, http.StatusCreated, response)
+}
+
+func handelStripeWebhook(w http.ResponseWriter, r *http.Request, rabbitmq *messaging.RabbitMQ) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "failed to read request body", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	webhookKey := env.GetString("STRIPE_WEBHOOK_KEY", "")
+	if webhookKey == "" {
+		log.Println("STRIPE_WEBHOOK_KEY not set and is required in stripe webhook")
+		return 
+	}
+
+	event, err := webhook.ConstructEventWithOptions(
+		body,
+		r.Header.Get("Stripe-Signature"),
+		webhookKey,
+		webhook.ConstructEventOptions{
+			IgnoreAPIVersionMismatch: true,
+		},
+	)
+	if err != nil {
+		log.Printf("error verifying webhook signature %v", err)
+		http.Error(w, "invalid signature", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("received stripe event: %v", event)
+
+	switch event.Type {
+	case "checkout.session.completed":
+		var session stripe.CheckoutSession
+
+		err := json.Unmarshal(event.Data.Raw, &session)
+		if err != nil {
+			log.Printf("Error parsing webhook JSON: %v", err)
+			http.Error(w, "Invalid payload", http.StatusBadRequest)
+			return
+		}
+
+		payload := messaging.PaymentStatusUpdateData{
+			TripID:   session.Metadata["trip_id"],
+			UserID:   session.Metadata["user_id"],
+			DriverID: session.Metadata["driver_id"],
+		}
+
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			log.Printf("Error marshalling payload: %v", err)
+			http.Error(w, "Failed to marshal payload", http.StatusInternalServerError)
+			return
+		}
+
+		message := contracts.AmqpMessage{
+			OwnerID: session.Metadata["user_id"],
+			Data:    payloadBytes,
+		}
+
+		if err := rabbitmq.PublishMessage(
+			r.Context(),
+			contracts.PaymentEventSuccess,
+			message,
+		); err != nil {
+			log.Printf("Error publishing payment event: %v", err)
+			http.Error(w, "Failed to publish payment event", http.StatusInternalServerError)
+			return
+		}
+	}
 }
