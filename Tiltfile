@@ -4,7 +4,7 @@ load('ext://restart_process', 'docker_build_with_restart')
 ### K8s Config ###
 k8s_yaml('./infra/development/k8s/secrets.yaml')
 k8s_resource(
-  new_name='rabbitmq-credentials',
+  new_name='secrets',
   objects=['rabbitmq-credentials:Secret:default'],
   labels=['configs-and-secrets']
 )

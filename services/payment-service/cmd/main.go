@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"golang-ride-sharing/services/payment-service/internal/infrastructure/stripe"
+	"golang-ride-sharing/services/payment-service/internal/service"
 	"golang-ride-sharing/services/payment-service/types"
 	"golang-ride-sharing/shared/env"
 	"golang-ride-sharing/shared/messaging"
@@ -29,7 +31,7 @@ func main() {
 
 	appURL := env.GetString("APP_URL", "http://localhost:3000")
 
-	// Stripe config
+	// Stripe config and processor
 	stripeCfg := &types.PaymentConfig{
 		StripeSecretKey: env.GetString("STRIPE_SECRET_KEY", ""),
 		SuccessURL:      env.GetString("STRIPE_SUCCESS_URL", appURL+"?payment=success"),
@@ -40,6 +42,11 @@ func main() {
 		log.Fatalf("STRIPE_SECRET_KEY is not set")
 		return
 	}
+
+	paymentProcessor := stripe.NewStripeClient(stripeCfg)
+
+	svc := service.NewPaymentService(paymentProcessor)
+	log.Println(svc)
 
 	// RabbitMQ connection
 	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqURI)
