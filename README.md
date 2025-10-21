@@ -2,7 +2,7 @@
 
 bolt/uber wannabe using golang and event driven architecture
 
-# tech and skills learned/improved in this project
+# tech and skills improved in this project
 - kubernetes with minikube
 - tilt local kubernetes development tool
 - rabbitmq
@@ -10,6 +10,8 @@ bolt/uber wannabe using golang and event driven architecture
 - grpc
 - refactoring
 - deploying to gcp Artifact Registry
+- request tracing with jaeger
+- mongodb
 
 # cheat sheat
 
