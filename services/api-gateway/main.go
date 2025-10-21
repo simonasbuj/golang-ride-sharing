@@ -11,6 +11,7 @@ import (
 
 	"golang-ride-sharing/shared/env"
 	"golang-ride-sharing/shared/messaging"
+	"golang-ride-sharing/shared/tracing"
 )
 
 var (
@@ -23,6 +24,22 @@ func main() {
 	// env vars
 	rabbitMqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
+	// initialzie tracing
+	tracerCfg := tracing.Config{
+		ServiceName: 	"api-gateway",
+		Environment: 	env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to start tracer: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer sh(ctx)
+
+	// init rabbitmq
 	rabbitmq, err := messaging.NewRabbitMQ(rabbitMqUri)
 	if err != nil {
 		log.Fatalf("failed to connect to rabbitmq: %v", err)
@@ -32,12 +49,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /trip/preview",  enableCORS(handleTripPreview))
-	mux.HandleFunc("POST /trip/start",  enableCORS(handleTripStart))
-	mux.HandleFunc("/ws/drivers", func(w http.ResponseWriter, r *http.Request){ handleDriversWebSocket(w, r, rabbitmq) })
-	mux.HandleFunc("/ws/riders", func(w http.ResponseWriter, r *http.Request){ handleRidersWebSocket(w, r, rabbitmq) } )
-	mux.HandleFunc("/webhook/stripe",  func(w http.ResponseWriter, r *http.Request){ handelStripeWebhook(w, r, rabbitmq) })
-
+	mux.Handle("POST /trip/preview",  tracing.WrapHandlerFunc(enableCORS(handleTripPreview), "/trip/preview"))
+	mux.Handle("POST /trip/start",  tracing.WrapHandlerFunc(enableCORS(handleTripStart), "/trip/start"))
+	mux.Handle("/ws/drivers", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request){ handleDriversWebSocket(w, r, rabbitmq) }, "/ws/drivers"))
+	mux.Handle("/ws/riders", tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request){ handleRidersWebSocket(w, r, rabbitmq) } , "/ws/riders"))
+	mux.Handle("/webhook/stripe",  tracing.WrapHandlerFunc(func(w http.ResponseWriter, r *http.Request){ handelStripeWebhook(w, r, rabbitmq) }, "/webhook/stripe"))
 
 	server := &http.Server{
 		Addr: httpAddr,

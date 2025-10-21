@@ -13,16 +13,29 @@ import (
 	"golang-ride-sharing/services/payment-service/types"
 	"golang-ride-sharing/shared/env"
 	"golang-ride-sharing/shared/messaging"
+	"golang-ride-sharing/shared/tracing"
 )
 
 func main() {
 	// GrpcAddr := env.GetString("GRPC_ADDR", ":9004")
 	rabbitMqURI := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
-	// Setup graceful shutdown
+	// initialzie tracing
+	tracerCfg := tracing.Config{
+		ServiceName: 	"payment-service",
+		Environment: 	env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to start tracer: %v", err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer sh(ctx)
 
+	// Setup graceful shutdown
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)

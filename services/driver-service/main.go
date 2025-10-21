@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"golang-ride-sharing/shared/env"
+	"golang-ride-sharing/shared/tracing"
 	"log"
 	"net"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"golang-ride-sharing/shared/messaging"
+
 	grpcserver "google.golang.org/grpc"
 )
 
@@ -20,10 +22,24 @@ var (
 func main() {
 	// env vars
 	rabbitMqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
-	// start grpc server with graceful shutdown
+
+	// initialzie tracing
+	tracerCfg := tracing.Config{
+		ServiceName: 	"driver-service",
+		Environment: 	env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to start tracer: %v", err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer sh(ctx)
 
+
+	// start grpc server with graceful shutdown
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)

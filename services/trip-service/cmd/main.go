@@ -8,6 +8,7 @@ import (
 	"golang-ride-sharing/services/trip-service/internal/service"
 	"golang-ride-sharing/shared/env"
 	"golang-ride-sharing/shared/messaging"
+	"golang-ride-sharing/shared/tracing"
 	"log"
 	"net"
 	"os"
@@ -25,15 +26,27 @@ func main() {
 	// env vars
 	rabbitmqUri := env.GetString("RABBITMQ_URI", "amqp://guest:guest@rabbitmq:5672/")
 
+	// initialzie tracing
+	tracerCfg := tracing.Config{
+		ServiceName: 	"trip-service",
+		Environment: 	env.GetString("ENVIRONMENT", "development"),
+		JaegerEndpoint: env.GetString("JAEGER_ENDPOINT", "http://jaeger:14268/api/traces"),
+	}
+
+	sh, err := tracing.InitTracer(tracerCfg)
+	if err != nil {
+		log.Fatalf("failed to start tracer: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer sh(ctx)
+
 	// dependency injections
 	inmemoryRepo := repository.NewInmemoryRepository()
 	tripService := service.NewTripService(inmemoryRepo)
 
 
 	// start grpc server with graceful shutdown
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
