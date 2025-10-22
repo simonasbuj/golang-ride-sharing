@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang-ride-sharing/shared/contracts"
+	"golang-ride-sharing/shared/retry"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -88,7 +89,26 @@ func (r *RabbitMQ) Close() {
 	}
 }
 
+func setupDeadLetterExchange() error {
+	err := r.Channel.ExchangeDeclare(
+		TripExchange, 	// exhcange name
+		"topic",		// routing type
+		true,			// durable
+		false,			// auto-deleted
+		false,			//internal
+		false,			// no-wait
+		nil,			// arguments
+	)
+
+	
+}
+
 func (r *RabbitMQ) setupExchangesAndQueues() error {
+	// first setup DLQ exchange and queue
+	if err := r.setupDeadLetterExchange(); err != nil {
+		return err
+	}
+
 	err := r.Channel.ExchangeDeclare(
 		TripExchange, 	// exhcange name
 		"topic",		// routing type
@@ -224,13 +244,28 @@ func (r *RabbitMQ) ConsumeMessages(queueName string, handler MessageHandler) err
 
 	go func() {
 		for msg := range msgs {
-			if err := handler(ctx, msg); err != nil {
-				log.Printf("ERROR: failed to handle the message, message: %s, error: %v", msg.Body, err)
-				if nackErr := msg.Nack(false, false); nackErr != nil {
-					log.Printf("ERRPR: failed to Nack message: %v", nackErr)
+
+			cfg := retry.DefaultConfig()
+			err := retry.WithBackoff(ctx, cfg, func() error {
+				return handler(ctx, msg)
+			})
+			if err != nil {
+				log.Printf("message processing failed after %d retries for message ID: %s, err: %v", cfg.MaxRetries, msg.MessageId, err)
+
+				// add failure context before sending to the DLQ
+				headers := amqp.Table{}
+				if msg.Headers != nil {
+					headers = msg.Headers
 				}
 
-				continue
+				headers["x-death-reason"] = err.Error()
+				headers["x-original-exchange"] = msg.Exchange
+				headers["x-original-routing-key"] = msg.RoutingKey
+				headers["x-retry-count"] = cfg.MaxRetries
+				msg.Headers = headers
+
+				// reject without requeue aka message goes to the DLQ
+				msg.Reject(false)
 			}
 
 			// acknowledge msg if handler succeded otherwise gonna stay in unack
