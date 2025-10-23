@@ -53,8 +53,8 @@ func main() {
 	log.Printf("connected to mongo db: %s", mongoDB.Name())
 
 	// dependency injections
-	inmemoryRepo := repository.NewInmemoryRepository()
-	tripService := service.NewTripService(inmemoryRepo)
+	mongodbRepo := repository.NewMongoRepository(mongoDB)
+	tripService := service.NewTripService(mongodbRepo)
 
 
 	// start grpc server with graceful shutdown
