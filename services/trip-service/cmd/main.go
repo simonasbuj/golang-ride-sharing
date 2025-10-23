@@ -6,6 +6,7 @@ import (
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"golang-ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"golang-ride-sharing/services/trip-service/internal/service"
+	"golang-ride-sharing/shared/db"
 	"golang-ride-sharing/shared/env"
 	"golang-ride-sharing/shared/messaging"
 	"golang-ride-sharing/shared/tracing"
@@ -40,6 +41,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	defer sh(ctx)
+
+	// init mongodb
+	mongoClient, err := db.NewMongoClient(ctx, db.NewMongoDefaultConfig())
+	if err != nil {
+		log.Fatalf("failed to initialize mongodb, err: %v", err)
+	}
+	defer mongoClient.Disconnect(ctx)
+
+	mongoDB := db.GetDatabase(mongoClient, db.NewMongoDefaultConfig())
+	log.Printf("connected to mongo db: %s", mongoDB.Name())
 
 	// dependency injections
 	inmemoryRepo := repository.NewInmemoryRepository()

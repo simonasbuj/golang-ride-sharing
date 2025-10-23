@@ -13,6 +13,11 @@ k8s_resource(
   objects=['stripe-secrets:Secret:default'],
   labels=['configs-and-secrets']
 )
+k8s_resource(
+  new_name='mongodb-secrets',
+  objects=['mongodb-secrets:Secret:default'],
+  labels=['configs-and-secrets']
+)
 
 k8s_yaml('./infra/development/k8s/app-config.yaml')
 k8s_resource(
