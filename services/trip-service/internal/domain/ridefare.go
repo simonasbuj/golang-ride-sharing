@@ -10,12 +10,12 @@ import (
 )
 
 type RideFareModel struct {
-	ID                primitive.ObjectID	`json:"ID"`
-	UserID            string				`json:"userID"`
-	PackageSlug       string 				`json:"packageSlug"`	// ex: van, luxury, sedan
-	TotalPriceInCents float64				`json:"totalPriceInCents"`
-	ExpiresAt         time.Time				`json:"expiresAt"`
-	Route  			  *types.OsrmApiResponse
+	ID                primitive.ObjectID		`json:"ID" bson:"_id,omitempty"`
+	UserID            string					`json:"userID" bson:"userID"`
+	PackageSlug       string 					`json:"packageSlug" bson:"packageSlug"`	// ex: van, luxury, sedan
+	TotalPriceInCents float64					`json:"totalPriceInCents" bson:"totalPriceInCents"`
+	ExpiresAt         time.Time					`json:"expiresAt" bson:"expiresAt"`
+	Route  			  *types.OsrmApiResponse	`json:"route" bson:"route"`
 }
 
 func (r *RideFareModel) toProto() *pb.RideFare {
