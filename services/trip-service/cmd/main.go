@@ -56,7 +56,6 @@ func main() {
 	mongodbRepo := repository.NewMongoRepository(mongoDB)
 	tripService := service.NewTripService(mongodbRepo)
 
-
 	// start grpc server with graceful shutdown
 	go func() {
 		sigCh := make(chan os.Signal, 1)
